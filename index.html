@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>SuperUpload</title>
+<!-- <script type="text/javascript" href="/assets/main.js"></script> -->
+
+<script type="text/javascript">
+
+    window.onload = function() {
+
+    // var ie = function() { return (navigator.userAgent.search('MSIE') > 0); }
+    // alert(ie());
+
+    var sessionid = ''
+
+    // Event handler for the file input element
+    var file_input = document.getElementById('file-input');
+    file_input.onchange = function(e) { 
+      createSession(doUploadForm);
+    };
+
+    // Submits the file input form to a hidden iFrame
+    function doUploadForm() {
+      if (this.iframe === undefined) {
+        this.iframe = createIFrame();
+      }
+
+      var t = setTimeout(get_progress, 1000);
+
+      var uploadform = document.getElementById('upload-form');
+      uploadform.target = this.iframe.name;
+      uploadform.submit();
+
+      enableTextInput();
+    }
+
+    // Creates a session from AJAX call to server
+    function createSession(callback) {
+      get('/session/create?' + Math.random(), function(xhr) {
+        if (xhr.status === 200) {
+          var json = eval('(' + xhr.responseText + ')');
+          sessionid = escape(json.sessionid);
+          var uploadform = document.getElementById('upload-form');
+          uploadform.action = '/upload?sessionid=' + sessionid;
+          callback();
+        }
+        else {
+          alert('Error: Could not create a session.');
+        }
+      });    
+    }
+
+    function enableTextInput() {
+      var filename_textarea = document.getElementById('filename-textarea');
+      var save_button = document.getElementById('save-button');
+
+      filename_textarea.disabled = false;
+      save_button.disabled = false;
+    }
+    
+    function get_progress() {
+      get('/progress?sessionid=' + sessionid + '&' + Math.random(), function(xhr) {
+        var json = eval('(' + xhr.responseText + ')');
+        if(json.status == 'success') {
+          var status = document.getElementById('status');
+          if (json.upload_status == 'complete') {
+            status.innerHTML = 'Upload complete. <a href="' + json.url + '">Uploaded to here.</a>';
+          }
+          else {
+            status.innerHTML = 'Upload progress: ' + json.progress + '%';
+            var t = setTimeout(get_progress, 1000);
+          }
+        }
+        else if (json.status == 'error') {
+          console.log('Error: ' + json.message);
+        }
+      });
+    }
+
+    function createIFrame() {
+      var iframe = document.createElement('iframe');
+      iframe.name = 'upload-iframe';
+      var status = document.getElementById("iframe-container");
+      status.appendChild(iframe);
+      return iframe;
+    }
+
+    // General AJAX GET functionality
+    function get(url, callback) {
+      var req = new XMLHttpRequest();
+      req.onreadystatechange = function() {
+        if(req.readyState === 4) { callback(req); }
+      }
+      req.open('GET', url);
+      req.send('');
+    }
+
+    function post(url, body, callback) {
+      var req = new XMLHttpRequest();
+      req.onreadystatechange = function() {
+        if(req.readyState === 4) { callback(req); }
+      }
+      req.open('POST', url);
+      req.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+      req.send(body);
+    }
+
+    save_button = document.getElementById('save-button');
+    save_button.onclick = function(e) {
+      var filename_textarea = document.getElementById('filename-textarea');
+
+      var body = 'description=' + escape(filename_textarea.value) + '&sessionid=' + sessionid;
+      post('/savedescription', body, function(xhr) {
+        var json = eval('(' + xhr.responseText + ')');
+        if (json.status == 'success') {
+          var desc_div = document.getElementById('description');
+          desc_div.innerHTML = '<p>Title: ' + json.title + '</p>' +
+                                  '<p>Description: ' + json.description + '</p>' +
+                                  '<p>URL: <a href="' + json.url + '">' + json.url + '</a></p>';
+        }
+        else if (json.status == 'error') {
+          alert('Error: ' + json.message);
+        }
+      });
+    }
+  }
+//})();
+
+</script>
+
+<style type="text/css" href="/assets/style.css"></style>
+<style type="text/css">
+  .container { width:240px; }
+  #iframe-container { display:none; }
+  #status { height:10px; }
+  #filename-textarea { width:240px; height:100px; }
+  #save-button { float:right; }
+</style>
+
+</head>
+  <body>
+    <div class="container">
+      <h1>SuperUpload</h1>
+      <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+        <input id="file-input" name="file" type="file" form="upload-form"></input>
+        <input type="hidden" name="sessionid-input" id="sessionid-input"></input>
+      </form>
+      <div id="status"></div>
+      <div id="iframe-container"></div>
+      <br>
+      <form id="text-form">
+        <textarea id="filename-textarea" name="filename" form="text-form" disabled="disabled"></textarea><br>
+        <button id="save-button" type="button" disabled="disabled">Save</button>
+      </form>
+      <div id="description">
+      </div>
+    </div>
+  </body>
+</html>
