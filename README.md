@@ -1,5 +1,3 @@
-README.md
-
 Uploader
 --------
 
@@ -8,9 +6,9 @@ A small uploader system which does upload progress. Written in python. Works wit
 
 Dependencies
 ------------
-Werkzeug 0.8.3
-gunicorn 0.14.6 (HTTP / WSGI server)
-eventlet 0.9.17 (worker class for gunicorn)
+* Werkzeug 0.8.3
+* gunicorn 0.14.6 (HTTP / WSGI server)
+* eventlet 0.9.17 (worker class for gunicorn)
 
 
 How to run
