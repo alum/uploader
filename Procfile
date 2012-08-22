@@ -1,1 +1,0 @@
-web: gunicorn uploader:application -b 0.0.0.0:$PORT -w 8 --timeout 10 -k sync
